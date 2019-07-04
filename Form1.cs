@@ -17,7 +17,8 @@ namespace calculador_logico
     public partial class TabVjanela : Form
     {
         //Strings que definem quais caracteres podem ser usados
-        protected string alfabeto = "abcdefghijklmnopqrstuvxywz!";
+        protected string alfabeto = "abcdefghijklmnopqrstuvxywz";
+        protected char negativo = '!';
         protected string conec = "˄˅ṿ→↔";
         protected string separ = "([{)]}";
 
@@ -82,7 +83,7 @@ namespace calculador_logico
             }
             for (int ctd = 0; ctd < expr.Length; ctd++)//Percorre toda a expressão caractere por caractere
             {
-                if (!(alfabeto + conec + separ).Contains(expr.ElementAt(ctd)))//Checa se é válido
+                if (!(alfabeto + negativo + conec + separ).Contains(expr.ElementAt(ctd)))//Checa se é válido
                 {
                     erros += "O caractere " + expr.ElementAt(ctd) +
                         " na posição " + (ctd + 1) + " não é válido.\n";
@@ -321,185 +322,203 @@ namespace calculador_logico
             int propo = 0;
             string[][] tabelav;
             List<int[]> inds = new List<int[]>();
-            List<string> colu = new List<string>();
+            List<string> coluna = new List<string>();
             for (int ctd = 0; ctd < expr.Length; ctd++) // Procurando e adcionando as proposições simples
             {
-                if (alfabeto.Contains(expr.ElementAt(ctd)) && !colu.Contains(expr.ElementAt(ctd).ToString()))
+                if (alfabeto.Contains(expr.ElementAt(ctd)) && !coluna.Contains(expr.ElementAt(ctd).ToString()))
                 {
-                    colu.Add(expr.ElementAt(ctd).ToString());
+                    coluna.Add(expr.ElementAt(ctd).ToString());
                     propo++;
                 }
             }
             for (int ctd = 0; ctd < expr.Length; ctd++)  // Procurando e adcionando as proposições simples negadas
             {
-                if (expr.ElementAt(ctd).Equals('!') && alfabeto.Contains(expr.ElementAt(ctd + 1)) && !colu.Contains(expr.Substring(ctd, 2)))
+                if (expr.ElementAt(ctd).Equals(negativo) && alfabeto.Contains(expr.ElementAt(ctd + 1)) && !coluna.Contains(expr.Substring(ctd, 2)))
                 {
-                    colu.Add(expr.Substring(ctd, 2));
+                    coluna.Add(expr.Substring(ctd, 2));
                 }
             }
-            for (int ctd = 0; ctd < expr.Length; ctd++)// Procurando e adcionando as posições compostas de duas proposições ou as mesmas negadas
+            // Procurando e adcionando as proposições compostas de duas proposições ou as mesmas negadas
+            for (int ctd = 0; ctd < expr.Length; ctd++)
             {
-                if (conec.Contains(expr.ElementAt(ctd)) && alfabeto.Contains(expr.ElementAt(ctd - 1)) && (alfabeto.Contains(expr.ElementAt(ctd + 1)) || expr.ElementAt(ctd+1).Equals('!')))
+                if(conec.Contains(expr.ElementAt(ctd)) && alfabeto.Contains(expr.ElementAt(ctd - 1)))
                 {
-                    int inicio = ctd - 1;
-                    int tamanho = 3;
-                    if (expr.ElementAt(ctd - 2).Equals('!')) { inicio--; tamanho++; }
-                    if (expr.ElementAt(ctd + 1).Equals('!')) { tamanho++; }
-                    colu.Add(expr.Substring(inicio,tamanho));//Adciona a composta
-                    if (ctd >= 3 && expr.ElementAt(ctd - 3).Equals('!'))//Adciona a negação da mesma se existir
+                    if (alfabeto.Contains(expr.ElementAt(ctd + 1)) || expr.ElementAt(ctd + 1).Equals(negativo))
                     {
-                        int crts = 5,ct = ctd + 1;
-                        while (!expr.ElementAt(ct).Equals(separ.ElementAt(separ.IndexOf(expr.ElementAt(ctd - 2)) + 3)))
-                        {
-                            ct++;
-                            crts++;
+                        int inicio = ctd - 1;
+                        int tamanho = 3;
+                        if (ctd >= 2 && expr.ElementAt(ctd - 2).Equals(negativo)) {
+                            inicio--;
+                            tamanho++;
                         }
-                        colu.Add(expr.Substring(ctd - 3, crts));
+                        if (ctd < expr.Length - 2 && expr.ElementAt(ctd + 1).Equals(negativo)) {
+                            tamanho++;
+                        }
+                        coluna.Add(expr.Substring(inicio, tamanho));//Adciona a composta
+                        if (ctd >= 3 && expr.ElementAt(ctd - 3).Equals(negativo))//Adciona a negação da mesma se existir
+                        {
+                            int crts = 5, ct = ctd + 1;
+                            while (!expr.ElementAt(ct).Equals(separ.ElementAt(separ.IndexOf(expr.ElementAt(ctd - 2)) + 3)))
+                            {
+                                ct++;
+                                crts++;
+                            }
+                            coluna.Add(expr.Substring(ctd - 3, crts));
+                        }
+
                     }
-                    
                 }
             }
-            for (int ctd = 0; ctd < expr.Length; ctd++)// Procurando e adcionando proposições compostas de outras proposições compostas
+            // Procurando e adcionando proposições compostas de outras proposições compostas
+            for (int ctd = 0; ctd < expr.Length; ctd++)
             {
-                if (conec.Contains(expr.ElementAt(ctd)) && (separ.Contains(expr.ElementAt(ctd - 1)) || separ.Contains(expr.ElementAt(ctd + 1))))
+                if(conec.Contains(expr.ElementAt(ctd)))
                 {
-                    int itpr1 = 0, tpr1 = ctd, itpr2 = ctd + 1, tpr2 = expr.Length - 1 - ctd;
-                    if (separ.Contains(expr.ElementAt(ctd - 1)))
+                    if (separ.Contains(expr.ElementAt(ctd - 1)) || separ.Contains(expr.ElementAt(ctd + 1)))
                     {
-                        tpr1 = ctd - 1;
-                    }
-                    if (separ.Contains(expr.ElementAt(ctd + 1)))
-                    {
-                        itpr2++;
-                        tpr2--;
-                    }
-                    while (itpr1 < (ctd - 1))
-                    {
-                        if(colu.IndexOf(expr.Substring(itpr1,tpr1)) >= 0)
+                        int indicepr1 = 0;
+                        int tamanhopr1 = ctd;
+                        int indicepr2 = ctd + 1;
+                        int tamanhopr2 = expr.Length - 1 - ctd;
+                        if (separ.Contains(expr.ElementAt(ctd - 1)))
                         {
-                            if (separ.Contains(expr.ElementAt(ctd - 1))) tpr1+=2;
-                            if (itpr1 != 0 && separ.Contains(expr.ElementAt(itpr1 - 1))) itpr1--;
-                            break;
+                            tamanhopr1 = ctd - 1;
                         }
-                        itpr1++;
-                        tpr1--;
-                    }
-                    while (tpr2 > 1)
-                    {
-                        if(colu.IndexOf(expr.Substring(itpr2,tpr2)) >= 0)
+                        if (separ.Contains(expr.ElementAt(ctd + 1)))
                         {
-                            if (separ.Contains(expr.ElementAt(ctd + 1))) tpr2 += 2;
-                            break;
+                            indicepr2++;
+                            tamanhopr2--;
                         }
-                        tpr2--;
+                        while (indicepr1 < (ctd - 1))
+                        {
+                            if (coluna.IndexOf(expr.Substring(indicepr1, tamanhopr1)) >= 0)
+                            {
+                                if (separ.Contains(expr.ElementAt(ctd - 1))) tamanhopr1 += 2;
+                                if (indicepr1 != 0 && separ.Contains(expr.ElementAt(indicepr1 - 1))) indicepr1--;
+                                break;
+                            }
+                            indicepr1++;
+                            tamanhopr1--;
+                        }
+                        while (tamanhopr2 > 1)
+                        {
+                            if (coluna.IndexOf(expr.Substring(indicepr2, tamanhopr2)) >= 0)
+                            {
+                                if (separ.Contains(expr.ElementAt(ctd + 1))) tamanhopr2 += 2;
+                                break;
+                            }
+                            tamanhopr2--;
+                        }
+                        string propcomposta = expr.Substring(indicepr1, tamanhopr1 + tamanhopr2 + 1);
+                        coluna.Add(propcomposta);
+                        coluna.OrderBy(x => x.Length);//A lista das colunas é ordenada pelo tamanho das proposições
+                        // O índice que mostra a posição do conectivo principal é armazenado com o índice da proposição em colu
+                        inds.Add(new int[] {
+                            coluna.IndexOf(propcomposta), tamanhopr1});
                     }
-                    string aux = expr.Substring(itpr1, tpr1 + tpr2 + 1);
-                    colu.Add(aux);
-                    colu.OrderBy(x => x.Length);//A lista das colunas é ordenada pelo tamanho das proposições
-                    // O índice que mostra a posição do conectivo é armazenado com o índice da proposição em colu
-                    inds.Add(new int[] {
-                        colu.IndexOf(aux), tpr1
-                    });
                 }
+                
             }
 
             //O número de linhas e colunas da tabela é calculado
-            int linhas = (int)Math.Pow(2, Convert.ToDouble(propo));
-            int colunas = colu.Count;
-            tabelav = new string[linhas][];
-            for (int ctd1 = 0; ctd1 < linhas; ctd1++)
+            int nlin = (int)Math.Pow(2, Convert.ToDouble(propo));
+            int ncol = coluna.Count;
+            tabelav = new string[nlin][];
+            for (int ctd1 = 0; ctd1 < nlin; ctd1++)
             {
-                tabelav[ctd1] = new string[colunas];
+                tabelav[ctd1] = new string[ncol];
             }
             string p1,p2,conlog;
-            int np1,np2;
-            for (int ctd1 = 0; ctd1 < colunas; ctd1++)
+            int numeroprop1,numeroprop2;
+            for (int ctcol = 0; ctcol < ncol; ctcol++)
             {
-                if (ctd1 < propo)
+                if (ctcol < propo)
                 {
-                    int lin2 = 0;
-                    for (int ctd2 = 0; ctd2 < ((int)Math.Pow(2,ctd1)); ctd2++)
+                    int lin = 0;
+                    int variacao1 = (int)Math.Pow(2, ctcol);
+                    int variacao2 = nlin / ((int)Math.Pow(2, ctcol + 1));
+                    for (int ctd2 = 0; ctd2 < variacao1; ctd2++)
                     {
-                        for (int ctd3 = 0; ctd3 < (linhas / ((int)Math.Pow(2,(ctd1+1)))); ctd3++)
+                        for (int ctd3 = 0; ctd3 < variacao2; ctd3++)
                         {
-                            tabelav[lin2][ctd1] = "V";
-                            lin2++;
+                            tabelav[lin][ctcol] = "V";
+                            lin++;
                         }
-                        for (int ctd3 = 0; ctd3 < (linhas / ((int)Math.Pow(2, (ctd1 + 1)))); ctd3++)
+                        for (int ctd3 = 0; ctd3 < variacao2; ctd3++)
                         {
-                            tabelav[lin2][ctd1] = "F";
-                            lin2++;
+                            tabelav[lin][ctcol] = "F";
+                            lin++;
                         }
                     }
                 }
                 else
                 {       
-                    if (colu[ctd1].ElementAt(0).Equals('!'))
+                    if (coluna[ctcol].ElementAt(0).Equals(negativo))
                     {
-                        if (separ.Contains(colu[ctd1].ElementAt(1)))
+                        if (separ.Contains(coluna[ctcol].ElementAt(1)))
                         {
-                            np1 = colu.IndexOf(colu[ctd1].Substring(2, colu[ctd1].Length - 3));
+                            numeroprop1 = coluna.IndexOf(coluna[ctcol].Substring(2, coluna[ctcol].Length - 3));
                         }
-                        else if (colu[ctd1].Length == 2)
+                        else if (coluna[ctcol].Length == 2)
                         {
-                            np1 = colu.IndexOf(colu[ctd1].Substring(1, 1));
+                            numeroprop1 = coluna.IndexOf(coluna[ctcol].Substring(1, 1));
                         }
                         else 
                         { 
-                            np1 = -1; 
+                            numeroprop1 = -1; 
                         }
-                        if (np1 != -1)
+                        if (numeroprop1 != -1)
                         {
-                            for (int ctd2 = 0; ctd2 < linhas; ctd2++)
+                            for (int ctd2 = 0; ctd2 < nlin; ctd2++)
                             {
-                                tabelav[ctd2][ctd1] = Negue(tabelav[ctd2][np1]);
+                                tabelav[ctd2][ctcol] = Negue(tabelav[ctd2][numeroprop1]);
                             }
                         }
                     }
-                    if (colu[ctd1].Count(x => conec.Any(x.Equals)) == 1)
+                    else if (coluna[ctcol].Count(x => conec.Any(x.Equals)) == 1)
                     {
-                        int ic = colu[ctd1].LastIndexOfAny(conec.ToCharArray());
-                        conlog = colu[ctd1].ElementAt(ic).ToString();
-                        p1 = colu[ctd1].Substring(0, ic);
-                        p2 = colu[ctd1].Substring(ic + 1, colu[ctd1].Length - 1 - ic);
-                        np1 = colu.IndexOf(p1);
-                        np2 = colu.IndexOf(p2);
-                        for (int ctd2 = 0; ctd2 < linhas; ctd2++)
+                        int ic = coluna[ctcol].LastIndexOfAny(conec.ToCharArray());
+                        conlog = coluna[ctcol].ElementAt(ic).ToString();
+                        p1 = coluna[ctcol].Substring(0, ic);
+                        p2 = coluna[ctcol].Substring(ic + 1, coluna[ctcol].Length - 1 - ic);
+                        numeroprop1 = coluna.IndexOf(p1);
+                        numeroprop2 = coluna.IndexOf(p2);
+                        for (int ctd2 = 0; ctd2 < nlin; ctd2++)
                         {
-                            tabelav[ctd2][ctd1] = Conecte(tabelav[ctd2][np1], tabelav[ctd2][np2], conlog);
+                            tabelav[ctd2][ctcol] = Conecte(tabelav[ctd2][numeroprop1], tabelav[ctd2][numeroprop2], conlog);
                         }
                     }
-                    else
+                    else if(coluna[ctcol].Count(x => conec.Any(x.Equals)) > 1)
                     {
-                        int ic = inds.Find(x => x[0]==ctd1)[1];
-                        conlog = colu[ctd1].ElementAt(ic).ToString();
-                        if (separ.Contains(colu[ctd1].ElementAt(ic-1)))
+                        int ic = inds.Find(x => x[0]==ctcol)[1];
+                        conlog = coluna[ctcol].ElementAt(ic).ToString();
+                        if (separ.Contains(coluna[ctcol].ElementAt(ic-1)))
                         {
-                            p1 = colu[ctd1].Substring(1, ic - 2);
+                            p1 = coluna[ctcol].Substring(1, ic - 2);
                         }
                         else
                         {
-                            p1 = colu[ctd1].Substring(0, ic);
+                            p1 = coluna[ctcol].Substring(0, ic);
                         }
-                        if (separ.Contains(colu[ctd1].ElementAt(ic + 1)))
+                        if (separ.Contains(coluna[ctcol].ElementAt(ic + 1)))
                         {
-                            p2 = colu[ctd1].Substring(ic + 2, colu[ctd1].Length - (ic+3));
+                            p2 = coluna[ctcol].Substring(ic + 2, coluna[ctcol].Length - (ic+3));
                         }
                         else
                         {
-                            p2 = colu[ctd1].Substring(ic + 1, colu[ctd1].Length - 1 - ic); ;
+                            p2 = coluna[ctcol].Substring(ic + 1, coluna[ctcol].Length - 1 - ic); ;
                         }
-                        np1 = colu.IndexOf(p1);
-                        np2 = colu.IndexOf(p2);
-                        for (int ctd2 = 0; ctd2 < linhas; ctd2++)
+                        numeroprop1 = coluna.IndexOf(p1);
+                        numeroprop2 = coluna.IndexOf(p2);
+                        for (int ctd2 = 0; ctd2 < nlin; ctd2++)
                         {
-                            tabelav[ctd2][ctd1] = Conecte(tabelav[ctd2][np1], tabelav[ctd2][np2], conlog);
+                            tabelav[ctd2][ctcol] = Conecte(tabelav[ctd2][numeroprop1], tabelav[ctd2][numeroprop2], conlog);
                         }
                     }
                     
                 }
             }
-            Prenchegridview(tabelav, colu);
+            Prenchegridview(tabelav, coluna);
         }
 
         public string Conecte(string v1,string v2, string con)//Faz a conexão de acordo com a lógica escolhida e retorna V ou F
